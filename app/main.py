@@ -4,12 +4,15 @@ import contextlib
 
 from fastapi import FastAPI
 
-from app.routers import arrivals
-from app.services import feed
+from app import db
+from app.routers import arrivals, stats
+from app.services import feed, stations
 
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
+    db.init_db()
+    stations.load_names_from_db()
     # The poller lives inside the API process for now (README, design
     # decision 2) - one deployable, no shared infra. Moves to a separate
     # worker alongside Redis.
@@ -29,6 +32,7 @@ app = FastAPI(
 )
 
 app.include_router(arrivals.router, prefix="/v1")
+app.include_router(stats.router, prefix="/v1")
 
 
 @app.get("/health")

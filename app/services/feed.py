@@ -144,12 +144,17 @@ async def poll_once(client: httpx.AsyncClient) -> int:
 
 
 async def poller_loop() -> None:
-    """Background task: refresh the snapshot forever."""
+    """Background task: refresh the snapshot and archive passed arrivals."""
+    from app.services import archive  # local import to avoid an import cycle
+
     async with httpx.AsyncClient() as client:
         while True:
             try:
                 n = await poll_once(client)
-                log.info("poll complete: %d/%d feeds ok", n, len(FEEDS))
+                # DB writes are sync; run them off the event loop.
+                archived = await asyncio.to_thread(archive.record_snapshot, _snapshot)
+                log.info("poll complete: %d/%d feeds ok, %d arrivals archived",
+                         n, len(FEEDS), archived)
             except Exception:
                 log.exception("poll cycle failed")
             await asyncio.sleep(POLL_INTERVAL)

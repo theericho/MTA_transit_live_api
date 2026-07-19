@@ -2,11 +2,13 @@
 
 A real-time NYC subway arrivals API built with [FastAPI](https://fastapi.tiangolo.com/).
 Ingests the MTA's GTFS-realtime feeds, serves live arrival lookups per station,
-and will archive history for trend analytics.
+and archives observed arrivals for reliability analytics.
 
-**Status: v1 - live data.** A background poller fetches all 8 subway feeds
-every 30 seconds into an in-memory snapshot; the API serves station-indexed
-arrivals from that snapshot. See the [roadmap](#roadmap) below.
+**Status: v2 - live data + history.** A background poller fetches all 8 subway
+feeds every 30 seconds into an in-memory snapshot; the API serves
+station-indexed arrivals from that snapshot. Passed arrivals are archived to a
+SQL database, and stats endpoints report headway reliability per station. See
+the [roadmap](#roadmap) below.
 
 ## Run it
 
@@ -14,6 +16,7 @@ Requires **Python 3.10+**.
 
 ```bash
 pip install -r requirements.txt
+python scripts/load_gtfs_static.py     # once: load all 496 station names
 uvicorn app.main:app --reload
 ```
 
@@ -22,11 +25,17 @@ Then open:
 - <http://localhost:8000/health> - health check (includes `snapshot_ready`)
 - <http://localhost:8000/v1/stations/R16/arrivals> - live arrivals at Times Sq
 - <http://localhost:8000/v1/stations/631/arrivals> - live arrivals at Grand Central
+- <http://localhost:8000/v1/stats/stations/R16/headways> - headway stats
+  (needs some uptime first: history accumulates while the server runs)
 
 The first poll takes a few seconds; until it completes, arrival endpoints
 return **503**. Unknown stations return **404**; known-but-quiet stations
-return an empty list. Set `POLL_INTERVAL` (seconds, default 30) to tune the
-refresh cadence.
+return an empty list.
+
+Configuration:
+- `POLL_INTERVAL` - seconds between feed polls (default 30)
+- `DATABASE_URL` - SQLAlchemy URL; defaults to `sqlite:///./transit.db` for
+  zero-setup local use, point at PostgreSQL in production
 
 ## Try the raw feed
 
@@ -44,18 +53,20 @@ prints upcoming arrivals - the v0 proof of concept the API grew out of.
 pytest
 ```
 
-Tests are fully network-free: protobuf feed fixtures are built in memory and
-the snapshot is seeded directly, so the parser, cache, and endpoint layers are
-each tested in isolation.
+Tests are fully network-free: protobuf feed fixtures are built in memory, the
+snapshot is seeded directly, and database tests run against a per-test
+in-memory SQLite, so the parser, cache, archiver, and endpoint layers are each
+tested in isolation.
 
 ## Data source
 
 - **GTFS-realtime feeds.** The MTA publishes one protobuf feed per line group
   (1-6+S, A/C/E, N/Q/R/W, and so on), updated roughly every 30 seconds.
   Parsed with `gtfs-realtime-bindings`. The feeds are free to access.
-- **Static GTFS** (planned, v2). A zip of CSVs (stops, routes, trips) with
-  station names and coordinates. Until it lands, a small hand-checked name map
-  covers popular stations.
+- **Static GTFS.** A zip of CSVs (stops, routes, trips) with station names
+  and metadata. `scripts/load_gtfs_static.py` loads all parent stations into
+  the database; a small hand-checked name map covers the gap before that
+  first load.
 
 The feed is organized per *line group* and per *trip*, but clients ask per
 *station* - so the service must ingest everything and re-index by station.
@@ -75,20 +86,23 @@ That inversion is the core of the data model.
                 |     |                                       |
                 |     +----------> REST endpoints ----------->|--> clients
                 |     v                                       |
-                |  PostgreSQL (planned, v2)                   |
-                |  append-only arrival history                |
+                |  Archiver: passed predictions become        |
+                |  arrival events in SQL                      |
+                |  (SQLite dev / PostgreSQL via DATABASE_URL) |
                 +---------------------------------------------+
 ```
 
 - **Poller**: a background asyncio task inside the app, fetching each feed on
   an interval, parsing protobuf, and updating state.
-- **Snapshot cache**: the current arrivals, indexed by station - every API
+- **Snapshot cache**: the current arrivals, indexed by station - every live
   read hits this, never the upstream, so reads are fast and the MTA is never
   in the request path.
-- **Database** (planned, v2): append-only history of observed arrivals for
-  analytics, plus the static station/route reference tables.
-- **API**: read-only REST endpoints over the cache (live) and, later, the DB
-  (history).
+- **Archiver**: watches each (trip, station) prediction across polls; once
+  its arrival time passes while still current, it is recorded as an observed
+  arrival event.
+- **Database**: append-only arrival history plus the station/route/trip
+  reference tables. Stats endpoints query it.
+- **API**: read-only REST endpoints over the cache (live) and the DB (stats).
 
 ## Design decisions
 
@@ -105,13 +119,14 @@ That inversion is the core of the data model.
    so readers never see a half-built index and no locks are needed. Reads go
    through one small interface (`get_arrivals`), so swapping in Redis later
    does not touch the API layer.
-4. **Normalized history schema** (planned, v2). Stations, routes, trips, and
-   arrival events in separate tables with foreign keys, so reference data
-   lives once and orphan events are impossible. The arrivals table grows fast;
-   partitioning or a retention policy is part of the design.
+4. **Normalized history schema.** Stations, routes, trips, and arrival events
+   in separate tables with foreign keys, so reference data lives once and
+   orphan events are impossible. SQLite by default, PostgreSQL via
+   `DATABASE_URL`; schema and queries are portable across both. The arrivals
+   table grows fast; partitioning or a retention policy is future work.
 5. **Async ingestion.** Fetching 8 feeds is concurrent network I/O, so it uses
    `httpx.AsyncClient` with `asyncio.gather`. Protobuf parsing is cheap enough
-   to stay inline.
+   to stay inline; database writes run off the event loop in a thread.
 6. **Explicit response semantics.** Versioned under `/v1` with Pydantic
    response models throughout. 503 until the first poll completes, 404 for an
    unknown station, 200 with an empty list for a known-but-quiet one - "no
@@ -119,11 +134,25 @@ That inversion is the core of the data model.
 7. **Stale beats absent.** If a feed fetch fails, its previous payload is kept
    and served; every response carries `data_age_seconds` so clients judge
    freshness themselves instead of the API pretending or failing.
-8. **Network-free tests.** Feed fixtures are constructed protobuf messages;
-   the poll cycle is tested by faking the fetch function, including the
-   all-feeds-down case.
+8. **Network-free tests.** Feed fixtures are constructed protobuf messages,
+   and database tests use per-test in-memory SQLite. The poll cycle is tested
+   by faking the fetch function, including the all-feeds-down case.
 9. **Deployment** (planned, v3). Dockerfile plus CI running lint and tests,
    then a free-tier host with managed Postgres.
+10. **History records observations, not raw feed rows.** The feed only says
+    what is about to happen, so the archiver tracks each (trip, station)
+    prediction across polls and records it once its arrival time passes.
+    Guards learned from live data: a prediction that went stale long before
+    its arrival time is treated as a cancelled train and dropped; "ghost"
+    entries whose arrival time is already old when first seen are never
+    archived; and a flushed (trip, station) pair is remembered so a train
+    lingering in the feed after arrival is recorded exactly once.
+11. **Headway regularity instead of schedule on-time %.** True on-time
+    percentage requires the printed schedule, but most subway lines run
+    frequency-based service where riders care about even spacing. The stats
+    endpoint reports mean and median headway plus regularity: the share of
+    headways within 1.25x the median, a standard reliability measure for
+    high-frequency transit.
 
 ## Roadmap
 
@@ -131,21 +160,28 @@ That inversion is the core of the data model.
 |---------|------|
 | **v0** (done) | Standalone script: fetch one feed, parse, print arrivals (`scripts/fetch_feed.py`) |
 | **v1** (done) | FastAPI app: poller + in-memory snapshot + live endpoints + tests |
-| **v2** | Postgres history + stats endpoints (average headway, on-time %) + static GTFS station data |
+| **v2** (done) | SQL arrival history + headway stats endpoints + static GTFS station data |
 | **v3** | Redis cache, separate ingestion worker, Docker Compose, deploy |
-| **v4** (stretch) | Minimal dashboard or WebSocket push |
+| **v4** | Minimal dashboard or WebSocket push; station-complex merging (GTFS models platforms, riders think in complexes: R17 + D17 are both 34 St-Herald Sq and should answer as one station, via the MTA's Stations.csv complex mapping) |
 
 ## Layout
 
 ```
 app/
-├── main.py          # app entry, lifespan (starts poller), health endpoint
-├── routers/         # HTTP endpoints (503/404/empty-list semantics)
-├── models/          # Pydantic schemas (the API contract)
+├── main.py          # app entry, lifespan (DB init, poller), health endpoint
+├── db.py            # SQLAlchemy engine/session, DATABASE_URL switch
+├── routers/
+│   ├── arrivals.py  # live endpoints (503/404/empty-list semantics)
+│   └── stats.py     # headway stats from archived history
+├── models/
+│   ├── schemas.py   # Pydantic response models (the API contract)
+│   └── tables.py    # ORM tables: stations, routes, trips, arrival_events
 └── services/
     ├── feed.py      # poller, normalizer, snapshot cache
-    └── stations.py  # station names (static GTFS load comes in v2)
+    ├── archive.py   # predictions -> observed arrival events
+    └── stations.py  # station names (DB-backed after static GTFS load)
 scripts/
-└── fetch_feed.py    # v0 standalone fetch/parse demo
-tests/               # network-free: in-memory protobuf fixtures
+├── fetch_feed.py        # v0 standalone fetch/parse demo
+└── load_gtfs_static.py  # one-time station load from static GTFS
+tests/               # network-free: protobuf fixtures + in-memory SQLite
 ```
