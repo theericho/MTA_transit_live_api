@@ -1,33 +1,32 @@
-"""App entry point: creates the FastAPI app, wires routers, runs the poller."""
-import asyncio
+"""App entry point: creates the FastAPI app and wires up routers.
+
+This is the read side of the system: ingestion runs in a separate worker
+process (app/worker.py) and communicates through Redis (README, design
+decision 2). This process never talks to the MTA.
+"""
 import contextlib
+import time
 
 from fastapi import FastAPI
 
-from app import db
+from app import cache, db
 from app.routers import arrivals, stats
-from app.services import feed, stations
+from app.services import stations
 
 
 @contextlib.asynccontextmanager
 async def lifespan(app: FastAPI):
     db.init_db()
     stations.load_names_from_db()
-    # The poller lives inside the API process for now (README, design
-    # decision 2) - one deployable, no shared infra. Moves to a separate
-    # worker alongside Redis.
-    task = asyncio.create_task(feed.poller_loop())
     yield
-    task.cancel()
-    with contextlib.suppress(asyncio.CancelledError):
-        await task
+    await cache.close()
 
 
 app = FastAPI(
     title="MTA Transit Live API",
     description="Live NYC subway arrivals, station-indexed, from the MTA's "
                 "GTFS-realtime feeds. See the project README for the design.",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -36,9 +35,12 @@ app.include_router(stats.router, prefix="/v1")
 
 
 @app.get("/health")
-def health():
+async def health():
+    updated = await cache.updated_at()
     return {
         "status": "ok",
         "version": app.version,
-        "snapshot_ready": feed.snapshot_ready(),
+        "redis_ok": await cache.ping(),
+        "snapshot_ready": updated is not None,
+        "snapshot_age_seconds": None if updated is None else round(time.time() - updated, 1),
     }

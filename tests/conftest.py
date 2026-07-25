@@ -1,21 +1,46 @@
+import asyncio
 import time
 
+import fakeredis
 import pytest
 from google.transit import gtfs_realtime_pb2
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app import db
+from app import cache, db
 from app.services import archive, feed, stations
 
 
 @pytest.fixture(autouse=True)
 def clean_feed_state():
-    """Every test starts with an empty snapshot."""
+    """Every test starts with an empty feed merge state."""
     feed.reset()
     yield
     feed.reset()
+
+
+@pytest.fixture(autouse=True)
+def fake_redis(monkeypatch):
+    """In-memory Redis for every test.
+
+    A fresh FakeRedis client is handed out per call (connections are bound to
+    the calling event loop, and TestClient requests each run their own loop);
+    the FakeServer behind them shares the data.
+    """
+    server = fakeredis.FakeServer()
+
+    def _get_client():
+        return fakeredis.aioredis.FakeRedis(server=server, decode_responses=True)
+
+    monkeypatch.setattr(cache, "_client", None)
+    monkeypatch.setattr(cache, "get_client", _get_client)
+    yield server
+
+
+def seed_cache(snapshot):
+    """Write a snapshot into the (fake) cache, as the worker would."""
+    asyncio.run(cache.write_snapshot(snapshot))
 
 
 @pytest.fixture()
