@@ -1,0 +1,377 @@
+/* Dark canvas only, hairline borders instead of shadows, no gradients.
+   Accents stay reserved so the MTA route bullets are the only saturated
+   color on the page. */
+
+:root {
+  /* Surfaces */
+  --canvas: #0a0a0a;
+  --canvas-card: #191919;
+  --canvas-soft: #1a1c20;
+  --canvas-mid: #363a3f;
+  --hairline: #212327;
+
+  /* Text */
+  --ink: #ffffff;
+  --body: #dadbdf;
+  --mute: #7d8187;
+
+  /* Reserved accents, used sparingly */
+  --accent-sunset-soft: #ffc285;
+  --accent-breeze: #a0c3ec;
+  /* The one place the UI must signal a problem, so the only alert color. */
+  --status-stale: #f2555a;
+
+  /* Spacing, 4px base */
+  --sp-xs: 4px;
+  --sp-sm: 8px;
+  --sp-md: 12px;
+  --sp-lg: 16px;
+  --sp-xl: 24px;
+  --sp-2xl: 32px;
+  --sp-3xl: 48px;
+  --sp-4xl: 64px;
+
+  --radius-sm: 8px;
+  --radius-pill: 9999px;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--body);
+  font: 400 16px/24px var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--sp-4xl) var(--sp-xl);
+}
+
+/* Uppercase mono: the section-label voice of this system. */
+.eyebrow {
+  margin: 0;
+  font: 500 20px/28px var(--font-mono);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--body);
+}
+
+.wordmark {
+  margin: 0;
+  font: 500 32px/36px var(--font-sans);
+  letter-spacing: -0.6px;
+  color: var(--ink);
+}
+
+.masthead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-lg);
+  flex-wrap: wrap;
+}
+
+.tagline {
+  margin: var(--sp-sm) 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--mute);
+}
+
+.rule {
+  height: 1px;
+  background: var(--hairline);
+  margin: var(--sp-xl) 0;
+}
+
+/* Freshness: an outline pill, the only interactive-looking chrome up top. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-sm) var(--sp-lg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-pill);
+  font: 400 12px/16px var(--font-mono);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--body);
+}
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  flex: none;
+}
+.badge-fresh {
+  color: var(--ink);
+}
+.badge-aging {
+  color: var(--accent-sunset-soft);
+  border-color: color-mix(in srgb, var(--accent-sunset-soft) 30%, var(--hairline));
+}
+.badge-stale {
+  color: var(--status-stale);
+  border-color: color-mix(in srgb, var(--status-stale) 35%, var(--hairline));
+}
+
+/* Search */
+.search {
+  position: relative;
+}
+.search input {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--sp-md) var(--sp-lg);
+  font: 400 16px/24px var(--font-sans);
+  color: var(--ink);
+  background: var(--canvas-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+.search input::placeholder {
+  color: var(--mute);
+}
+.search input:focus {
+  outline: none;
+  border-color: var(--ink);
+}
+
+.results {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + var(--sp-sm));
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: var(--sp-xs);
+  list-style: none;
+  background: var(--canvas-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  max-height: 320px;
+  overflow-y: auto;
+}
+.results button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--sp-sm) var(--sp-md);
+  background: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--body);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.results button:hover,
+.results button:focus-visible {
+  background: var(--canvas-soft);
+  color: var(--ink);
+  outline: none;
+}
+.results .empty {
+  padding: var(--sp-md);
+  color: var(--mute);
+  font-size: 14px;
+}
+.result-name {
+  font-size: 14px;
+}
+.result-routes {
+  display: inline-flex;
+  gap: var(--sp-xs);
+  flex-wrap: wrap;
+}
+
+/* Hero: the station is the largest thing on the page, with the negative
+   tracking that gives this type system its gathered look. */
+.hero {
+  margin: var(--sp-2xl) 0 var(--sp-xl);
+}
+.station-name {
+  margin: var(--sp-md) 0 var(--sp-lg);
+  font-size: 48px;
+  line-height: 48px;
+  letter-spacing: -1.2px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+/* Route bullets keep the official MTA colors: the one saturated element. */
+.bullet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  font: 500 13px/1 var(--font-sans);
+  flex: none;
+}
+
+/* Arrivals board */
+.board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--sp-lg);
+}
+.card {
+  background: var(--canvas-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-xl);
+}
+.card ul {
+  list-style: none;
+  margin: var(--sp-lg) 0 0;
+  padding: 0;
+}
+.card li {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-md);
+  padding: var(--sp-md) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.card li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.minutes {
+  font-size: 20px;
+  line-height: 28px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.clock {
+  margin-left: auto;
+  font: 400 12px/16px var(--font-mono);
+  letter-spacing: 1.2px;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Notices */
+.notice {
+  padding: var(--sp-lg);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-card);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--body);
+}
+.notice.error {
+  border-color: color-mix(in srgb, var(--status-stale) 35%, var(--hairline));
+  color: var(--status-stale);
+}
+
+/* History panel */
+.panel {
+  margin-top: var(--sp-3xl);
+}
+.panel-summary {
+  margin-top: var(--sp-sm);
+}
+
+.panel-body {
+  margin-top: var(--sp-lg);
+  background: var(--canvas-card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  padding: var(--sp-xl);
+  /* The table is wider than a phone once the headers are this size. */
+  overflow-x: auto;
+}
+.muted {
+  margin: 0;
+  color: var(--mute);
+  font-size: 14px;
+  line-height: 20px;
+}
+.headways {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 16px;
+  line-height: 24px;
+}
+.headways th {
+  text-align: left;
+  padding: 0 var(--sp-md) var(--sp-md) 0;
+  border-bottom: 1px solid var(--hairline);
+  font: 500 16px/24px var(--font-mono);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--body);
+}
+.headways td {
+  padding: var(--sp-md) var(--sp-md) var(--sp-md) 0;
+  border-bottom: 1px solid var(--hairline);
+  color: var(--body);
+  font-variant-numeric: tabular-nums;
+}
+.headways tr:last-child td {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.headways td:last-child,
+.headways th:last-child {
+  padding-right: 0;
+}
+
+.meter {
+  position: relative;
+  display: block;
+  min-width: 104px;
+  height: 24px;
+  background: var(--hairline);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent-breeze);
+  opacity: 0.32;
+}
+.meter-label {
+  position: relative;
+  display: block;
+  text-align: center;
+  font: 400 14px/24px var(--font-mono);
+  color: var(--body);
+}
+
+@media (max-width: 768px) {
+  .app {
+    padding: var(--sp-2xl) var(--sp-lg) var(--sp-3xl);
+  }
+  .station-name {
+    font-size: 32px;
+    line-height: 36px;
+    letter-spacing: -0.6px;
+  }
+  .card,
+  .panel-body {
+    padding: var(--sp-lg);
+  }
+}

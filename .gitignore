@@ -5,6 +5,11 @@ __pycache__/
 venv/
 .pytest_cache/
 
+# Frontend build artifacts (the Docker build produces these)
+frontend/node_modules/
+frontend/dist/
+app/static/
+
 # Local data / secrets
 *.db
 .env

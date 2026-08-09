@@ -9,3 +9,6 @@ venv/
 IDEAS.md
 tests/
 .github/
+frontend/node_modules/
+frontend/dist/
+app/static/

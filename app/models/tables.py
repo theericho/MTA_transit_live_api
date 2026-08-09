@@ -14,12 +14,31 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db import Base
 
 
+class StationComplex(Base):
+    """A rider-facing station: one or more GTFS stations joined by passageways.
+
+    GTFS models platforms - 34 St-Herald Sq is two stations (R17 for N/Q/R/W,
+    D17 for B/D/F/M) and Times Sq is five. Riders think in complexes, so the
+    MTA's Stations.csv complex mapping is loaded here and the API answers per
+    complex (README, design decision 12).
+    """
+    __tablename__ = "complexes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)  # the MTA's Complex ID
+    name: Mapped[str] = mapped_column(String(200))
+
+
 class Station(Base):
     __tablename__ = "stations"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     gtfs_stop_id: Mapped[str] = mapped_column(String(8), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(100))
+    # Both are populated by scripts/load_gtfs_static.py from Stations.csv and
+    # stay null if that load never ran: each station is then its own complex.
+    complex_id: Mapped[int | None] = mapped_column(
+        ForeignKey("complexes.id"), index=True, default=None)
+    daytime_routes: Mapped[str | None] = mapped_column(String(64), default=None)
 
 
 class Route(Base):

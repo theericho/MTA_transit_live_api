@@ -10,6 +10,19 @@ class Station(BaseModel):
     routes: list[str] = Field(description="Routes serving this station")
 
 
+class StationSearchResult(BaseModel):
+    id: str = Field(description="Id to request arrivals for, per `kind`")
+    kind: str = Field(
+        description="'complex' when the entry groups several GTFS stations "
+                    "(request /v1/complexes/{id}/arrivals), 'station' when it "
+                    "is a lone GTFS station (/v1/stations/{id}/arrivals). "
+                    "Everything is a complex once Stations.csv is loaded."
+    )
+    name: str
+    routes: list[str] = Field(description="Daytime routes from static GTFS data")
+    station_ids: list[str] = Field(description="GTFS stations covered by this entry")
+
+
 class Arrival(BaseModel):
     route: str = Field(description="Route name, e.g. 'N'")
     direction: str = Field(description="'N' (uptown) or 'S' (downtown)")

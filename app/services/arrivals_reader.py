@@ -16,7 +16,13 @@ from app.services.stations import station_name
 ARRIVALS_LIMIT = 10
 
 
-async def get_arrivals(station_id: str, limit: int = ARRIVALS_LIMIT) -> StationArrivals | None:
+async def get_arrivals(station_id: str,
+                       limit: int | None = ARRIVALS_LIMIT) -> StationArrivals | None:
+    """Shape one station's cached records into a response; None if unknown.
+
+    `limit=None` returns every upcoming arrival, which the complex endpoint
+    uses so it can merge members before clipping.
+    """
     now = time.time()
     recs = await cache.read_station(station_id) or []
     name = station_name(station_id)
