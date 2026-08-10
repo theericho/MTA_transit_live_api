@@ -24,7 +24,18 @@ class StationSearchResult(BaseModel):
 
 
 class Arrival(BaseModel):
-    route: str = Field(description="Route name, e.g. 'N'")
+    route: str = Field(description="Raw GTFS route id, e.g. 'GS'")
+    route_name: str = Field(
+        description="What riders see on the bullet, e.g. 'S'. The three "
+                    "shuttles are all signed S; express variants show the "
+                    "base route with `express` set."
+    )
+    route_long_name: str | None = Field(
+        default=None, description="Full service name, e.g. '42 St Shuttle'"
+    )
+    express: bool = Field(
+        default=False, description="True when MTA signage uses a diamond bullet"
+    )
     direction: str = Field(description="'N' (uptown) or 'S' (downtown)")
     arrival_time: datetime
     minutes_away: float = Field(ge=0)
@@ -40,7 +51,10 @@ class StationArrivals(BaseModel):
 
 
 class HeadwayGroup(BaseModel):
-    route: str
+    route: str = Field(description="Raw GTFS route id")
+    route_name: str = Field(description="What riders see on the bullet")
+    route_long_name: str | None = None
+    express: bool = False
     direction: str = Field(description="'N' (uptown) or 'S' (downtown)")
     arrivals: int = Field(description="Observed arrivals in the window")
     mean_headway_minutes: float | None = Field(

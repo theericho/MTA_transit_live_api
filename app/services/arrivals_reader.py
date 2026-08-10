@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 
 from app import cache
 from app.models.schemas import Arrival, Station, StationArrivals
+from app.services import routes
 from app.services.stations import station_name
 
 ARRIVALS_LIMIT = 10
@@ -39,16 +40,22 @@ async def get_arrivals(station_id: str,
         station=Station(
             id=station_id,
             name=name or station_id,
-            routes=sorted({r.route for r in recs}),
+            routes=routes.display_names(r.route for r in recs),
         ),
-        arrivals=[
-            Arrival(
-                route=r.route,
-                direction=r.direction,
-                arrival_time=datetime.fromtimestamp(r.time, tz=timezone.utc),
-                minutes_away=round(max(0.0, (r.time - now) / 60), 1),
-            )
-            for r in upcoming
-        ],
+        arrivals=[_arrival(r, now) for r in upcoming],
         data_age_seconds=round(now - oldest_fetch, 1),
+    )
+
+
+def _arrival(rec, now: float) -> Arrival:
+    """Shape one cached record, translating the raw route id for display."""
+    brand = routes.branding(rec.route)
+    return Arrival(
+        route=rec.route,
+        route_name=brand.name,
+        route_long_name=brand.long_name,
+        express=brand.express,
+        direction=rec.direction,
+        arrival_time=datetime.fromtimestamp(rec.time, tz=timezone.utc),
+        minutes_away=round(max(0.0, (rec.time - now) / 60), 1),
     )

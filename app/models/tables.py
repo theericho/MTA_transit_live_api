@@ -46,6 +46,11 @@ class Route(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     gtfs_route_id: Mapped[str] = mapped_column(String(8), unique=True)
+    # Rider-facing branding from routes.txt: GS/FS/H are all signed "S", SI is
+    # signed "SIR". Null until scripts/load_gtfs_static.py has run, or for a
+    # route the archiver saw in the feed before the static data described it.
+    short_name: Mapped[str | None] = mapped_column(String(8), default=None)
+    long_name: Mapped[str | None] = mapped_column(String(64), default=None)
 
 
 class Trip(Base):

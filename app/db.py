@@ -46,6 +46,10 @@ _ADDED_COLUMNS = {
         "complex_id": "INTEGER REFERENCES complexes(id)",
         "daytime_routes": "VARCHAR(64)",
     },
+    "routes": {
+        "short_name": "VARCHAR(8)",
+        "long_name": "VARCHAR(64)",
+    },
 }
 
 

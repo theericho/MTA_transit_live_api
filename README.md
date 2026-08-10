@@ -15,8 +15,8 @@ Compose. See the [roadmap](#roadmap) below.
 
 ```bash
 docker compose up --build
-docker compose run --rm worker python scripts/load_gtfs_static.py   # once: stations + complexes
-docker compose restart api   # only if the stack was already running: names load at startup
+docker compose run --rm worker python scripts/load_gtfs_static.py   # once: stations, complexes, route branding
+docker compose restart api   # only if the stack was already running: names and branding load at startup
 ```
 
 Four services start: the API (port 8000), the ingestion worker, Redis, and
@@ -55,7 +55,7 @@ works fine on its own):
 
 ```bash
 pip install -r requirements.txt
-python scripts/load_gtfs_static.py     # once: stations + complexes into SQLite
+python scripts/load_gtfs_static.py     # once: stations, complexes, branding into SQLite
 python -m app.worker                   # terminal 1: ingestion
 uvicorn app.main:app --reload          # terminal 2: API
 ```
@@ -111,6 +111,10 @@ builds the dashboard on every push.
 - **Stations.csv.** The MTA's station list, which carries the Complex ID
   grouping and daytime routes. The same script loads it into the `complexes`
   table: 445 complexes, 35 of which span more than one GTFS station.
+- **routes.txt**, from the same zip, supplies rider-facing route branding.
+  Four of the 29 route ids are signed differently from their id: `GS`, `FS`
+  and `H` are three unrelated shuttles all signed **S**, and `SI` is signed
+  **SIR**.
 
 The feed is organized per *line group* and per *trip*, but clients ask per
 *station* - so the service must ingest everything and re-index by station.
@@ -218,7 +222,19 @@ That inversion is the core of the data model.
     bundle and the Python stage copies it in, so there is still one image, one
     origin, and no CORS configuration. `npm run dev` reproduces that in
     development with a Vite proxy rather than a second set of rules.
-14. **The browser polls; it is not pushed to.** The upstream feeds only change
+14. **Route branding needs two mechanisms, not one.** The feed identifies a
+    train by `route_id`, which is an internal identifier rather than what is
+    printed on the train. Half the problem is a data lookup: `routes.txt` says
+    `GS`, `FS` and `H` are all signed **S**. The other half is a convention
+    the data does not encode, since `FX`, `6X` and `7X` carry their own id as
+    their short name; MTA signage renders express service as a diamond, so a
+    trailing `X` on a known route means "that route, express". Translation
+    happens on read and the raw id stays in the response and in the database,
+    so nothing that already depended on `route` breaks and history stays
+    joinable. Showing all three shuttles as **S** is unambiguous because no
+    station is served by more than one of them, and the full service name is
+    carried alongside for a tooltip.
+15. **The browser polls; it is not pushed to.** The upstream feeds only change
     every ~30s, so a 15s poll is never more than one cycle behind. WebSockets
     would add Redis pub/sub, connection lifecycle, and reconnect logic to
     deliver data that changes twice a minute, and polling has the side benefit
@@ -253,6 +269,7 @@ app/
     ├── feed.py            # fetch + normalize + merge (ingestion half)
     ├── arrivals_reader.py # cache records -> API responses (read half)
     ├── archive.py         # predictions -> observed arrival events
+    ├── routes.py          # route branding: GTFS ids -> what riders see
     └── stations.py        # station names (DB-backed after static GTFS load)
 frontend/            # React + Vite dashboard, built into app/static/
 ├── vite.config.js   # dev proxy to the API

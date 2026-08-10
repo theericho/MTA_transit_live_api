@@ -215,16 +215,32 @@ body {
   color: var(--ink);
 }
 
-/* Route bullets keep the official MTA colors: the one saturated element. */
+/* Route bullets keep the official MTA colors: the one saturated element.
+   Bold and compact, the way the real signage sets them. */
 .bullet {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   border-radius: var(--radius-pill);
-  font: 500 13px/1 var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
   flex: none;
+}
+
+/* Express service is a diamond on MTA signage. The square is shrunk so its
+   rotated diagonal matches the 24px circles and rows stay even, and the label
+   is counter-rotated to sit upright. */
+.bullet-express {
+  width: 18px;
+  height: 18px;
+  margin: 0 3px;
+  border-radius: 3px;
+  transform: rotate(45deg);
+}
+.bullet-express .bullet-text {
+  transform: rotate(-45deg);
 }
 
 /* Arrivals board */

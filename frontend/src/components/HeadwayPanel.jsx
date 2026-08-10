@@ -33,7 +33,11 @@ export default function HeadwayPanel({ headways, error }) {
         {headways.groups.map((g) => (
           <tr key={`${g.route}-${g.direction}`}>
             <td>
-              <RouteBullet route={g.route} />
+              <RouteBullet
+                route={g.route_name}
+                express={g.express}
+                title={g.route_long_name}
+              />
             </td>
             <td>{g.direction}</td>
             <td>{g.arrivals}</td>

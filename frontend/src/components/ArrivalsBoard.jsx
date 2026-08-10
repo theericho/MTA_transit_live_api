@@ -30,7 +30,11 @@ export default function ArrivalsBoard({ arrivals }) {
               <ul>
                 {forDirection.map((a, i) => (
                   <li key={`${a.route}-${a.arrival_time}-${i}`}>
-                    <RouteBullet route={a.route} />
+                    <RouteBullet
+                      route={a.route_name}
+                      express={a.express}
+                      title={a.route_long_name}
+                    />
                     <span className="minutes">{minutesLabel(a.minutes_away)}</span>
                     <span className="clock">
                       {new Date(a.arrival_time).toLocaleTimeString([], {

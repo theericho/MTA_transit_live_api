@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from app import cache, db
 from app.routers import arrivals, stats
 from app.routers import stations as stations_router
-from app.services import stations
+from app.services import routes, stations
 
 # Populated by the frontend build stage in the Dockerfile; absent when running
 # the API straight from a checkout, which is fine - the JSON API still works.
@@ -28,6 +28,9 @@ STATIC_DIR = Path(__file__).parent / "static"
 async def lifespan(app: FastAPI):
     db.init_db()
     stations.load_names_from_db()
+    # Only the API needs branding: the worker writes raw GTFS ids and
+    # translation happens on read.
+    routes.load_from_db()
     yield
     await cache.close()
 

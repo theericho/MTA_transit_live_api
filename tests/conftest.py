@@ -9,15 +9,17 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import cache, db
-from app.services import archive, feed, stations
+from app.services import archive, feed, routes, stations
 
 
 @pytest.fixture(autouse=True)
 def clean_feed_state():
-    """Every test starts with an empty feed merge state."""
+    """Every test starts with empty feed merge state and no route branding."""
     feed.reset()
+    routes.reset()
     yield
     feed.reset()
+    routes.reset()
 
 
 @pytest.fixture(autouse=True)

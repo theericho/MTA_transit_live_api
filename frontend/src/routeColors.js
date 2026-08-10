@@ -10,11 +10,11 @@ const COLORS = {
   J: '#996633', Z: '#996633',
   L: '#a7a9ac',
   N: '#fccc0a', Q: '#fccc0a', R: '#fccc0a', W: '#fccc0a',
-  S: '#808183', SI: '#0039a6',
+  S: '#808183', SIR: '#0039a6',
 }
 
-// The yellow and gray lines need dark text to stay readable.
-const DARK_TEXT = new Set(['N', 'Q', 'R', 'W', 'L', 'S'])
+// Only the yellow Broadway lines take dark lettering
+const DARK_TEXT = new Set(['N', 'Q', 'R', 'W'])
 
 export const routeColor = (route) => COLORS[route.toUpperCase()] ?? '#4a4a4a'
 export const routeTextColor = (route) =>
