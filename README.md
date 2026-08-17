@@ -233,7 +233,16 @@ That inversion is the core of the data model.
     so nothing that already depended on `route` breaks and history stays
     joinable. Showing all three shuttles as **S** is unambiguous because no
     station is served by more than one of them, and the full service name is
-    carried alongside for a tooltip.
+    carried alongside for a tooltip. Because the response now speaks two
+    vocabularies, filtering does too: `?route=` is the exact GTFS id and
+    `?route_name=` is the rider-facing name, so `route_name=S` finds all three
+    shuttles and `route=FX` selects the Brooklyn express alone. One parameter
+    covering both cannot tell "the F line" from "the id F", and whichever it
+    picks, a station reachable only under the other name silently returns
+    nothing. Passing a name that is not also an id (`S`, `SIR`) to `?route=`
+    is rejected with a 400 naming the other parameter, because an empty result
+    there reads as "no service". Where the two overlap, as with `F`, the id
+    wins and is filtered exactly; `route_name=F` is how you ask for the line.
 15. **The browser polls; it is not pushed to.** The upstream feeds only change
     every ~30s, so a 15s poll is never more than one cycle behind. WebSockets
     would add Redis pub/sub, connection lifecycle, and reconnect logic to

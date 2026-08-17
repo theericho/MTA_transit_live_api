@@ -28,8 +28,9 @@ router = APIRouter(tags=["stats"])
 def station_headways(
     station_id: str,
     hours: int = Query(24, ge=1, le=168, description="Look-back window"),
-    route: str | None = Query(None, description="Filter to one route by name or "
-                                                "GTFS id, e.g. N, S, GS"),
+    route: str | None = Query(None, description="Exact GTFS route id, e.g. N, GS, FX"),
+    route_name: str | None = Query(None, description="Rider-facing route name, "
+                                                     "as on the bullet, e.g. N, S, F"),
     direction: str | None = Query(None, pattern="^[NSns]$"),
     session: Session = Depends(db.get_session),
 ) -> StationHeadways:
@@ -40,15 +41,16 @@ def station_headways(
             detail=f"No archived data for station: {station_id}",
         )
     return _headways(session, [station.id], station.gtfs_stop_id, station.name,
-                     hours, route, direction)
+                     hours, route, route_name, direction)
 
 
 @router.get("/stats/complexes/{complex_id}/headways", response_model=StationHeadways)
 def complex_headways(
     complex_id: int,
     hours: int = Query(24, ge=1, le=168, description="Look-back window"),
-    route: str | None = Query(None, description="Filter to one route by name or "
-                                                "GTFS id, e.g. N, S, GS"),
+    route: str | None = Query(None, description="Exact GTFS route id, e.g. N, GS, FX"),
+    route_name: str | None = Query(None, description="Rider-facing route name, "
+                                                     "as on the bullet, e.g. N, S, F"),
     direction: str | None = Query(None, pattern="^[NSns]$"),
     session: Session = Depends(db.get_session),
 ) -> StationHeadways:
@@ -66,11 +68,30 @@ def complex_headways(
             detail=f"No archived data for complex: {complex_id}",
         )
     return _headways(session, [m.id for m in members], str(complex_id),
-                     complex_.name, hours, route, direction)
+                     complex_.name, hours, route, route_name, direction)
 
 
 def _headways(session: Session, station_ids: list[int], out_id: str, out_name: str,
-              hours: int, route: str | None, direction: str | None) -> StationHeadways:
+              hours: int, route: str | None, route_name: str | None,
+              direction: str | None) -> StationHeadways:
+    # Two filters because the response speaks two vocabularies: groups[].route
+    # is the raw GTFS id, while station.routes and groups[].route_name are what
+    # the bullets read. One parameter serving both cannot tell "the F line"
+    # from "the id F", which silently drops FX-only or shuttle stations.
+    if route and route_name:
+        raise HTTPException(
+            status_code=400,
+            detail="Pass route (exact GTFS id) or route_name (rider-facing "
+                   "name), not both.",
+        )
+    if route and routes.is_display_name(route):
+        # An empty 200 here reads as "no service", which is the one answer this
+        # endpoint must never give by accident.
+        raise HTTPException(
+            status_code=400,
+            detail=f"{route} is a route name, not a GTFS id. "
+                   f"Use route_name={route}.",
+        )
     since = db.utcnow_naive() - timedelta(hours=hours)
     stmt = (
         select(ArrivalEvent.arrival_time, Route.gtfs_route_id, Trip.direction)
@@ -81,9 +102,9 @@ def _headways(session: Session, station_ids: list[int], out_id: str, out_name: s
         .order_by(ArrivalEvent.arrival_time)
     )
     if route:
-        # Accepts what the response advertises, not just the raw id: "S" has to
-        # find the GS/FS/H shuttles, and "F" both the F and its FX express.
-        stmt = stmt.where(Route.gtfs_route_id.in_(routes.ids_for(route)))
+        stmt = stmt.where(Route.gtfs_route_id == route.upper())
+    if route_name:
+        stmt = stmt.where(Route.gtfs_route_id.in_(routes.ids_for(route_name)))
     if direction:
         stmt = stmt.where(Trip.direction == direction.upper())
     rows = session.execute(stmt).all()

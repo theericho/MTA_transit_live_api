@@ -57,28 +57,72 @@ def test_headways_math(db_session):
     assert group["regularity_pct"] == pytest.approx(66.7)
 
 
-def test_route_filter_accepts_the_name_the_response_advertises(db_session):
-    """station.routes reports "S", so ?route=S has to find the GS shuttle."""
+def test_route_name_filter_finds_the_name_the_response_advertises(db_session):
+    """station.routes reports "S", so ?route_name=S has to find the GS shuttle."""
     _seed(db_session, gaps_minutes=[5, 5], route_id="GS", short_name="S")
 
     body = client.get("/v1/stats/stations/R16/headways?hours=2").json()
     assert body["station"]["routes"] == ["S"]
 
-    filtered = client.get("/v1/stats/stations/R16/headways?hours=2&route=S").json()
+    url = "/v1/stats/stations/R16/headways?hours=2&route_name=S"
+    filtered = client.get(url).json()
     assert filtered["total_arrivals"] == 3
     (group,) = filtered["groups"]
     assert group["route"] == "GS"      # grouping stays on the raw id
     assert group["route_name"] == "S"
 
 
-def test_route_filter_still_accepts_the_raw_id(db_session):
+def _seed_express_only(session_factory):
+    """A station served only by the FX express, in a system where F exists.
+
+    The express convention needs the base route to be known, so registering F
+    is what makes this the real-world case rather than an unknown id ending X.
+    """
+    _seed(session_factory, gaps_minutes=[5, 5], route_id="FX", short_name="FX")
+    with session_factory() as session:
+        session.add(Route(gtfs_route_id="F", short_name="F"))
+        session.commit()
+    routes.load_from_db()
+
+
+def test_route_name_finds_an_express_only_station(db_session):
+    """An FX-only station advertises "F"; that name must return its arrivals."""
+    _seed_express_only(db_session)
+
+    body = client.get("/v1/stats/stations/R16/headways?hours=2").json()
+    assert body["station"]["routes"] == ["F"]
+
+    url = "/v1/stats/stations/R16/headways?hours=2&route_name=F"
+    assert client.get(url).json()["total_arrivals"] == 3
+
+
+def test_route_filter_is_an_exact_id(db_session):
+    """The id axis stays exact, which is how you select FX alone."""
+    _seed_express_only(db_session)
+
+    base = "/v1/stats/stations/R16/headways?hours=2"
+    assert client.get(base + "&route=FX").json()["total_arrivals"] == 3
+    assert client.get(base + "&route=F").json()["total_arrivals"] == 0
+
+
+def test_route_and_route_name_together_are_rejected(db_session):
     _seed(db_session, gaps_minutes=[5, 5], route_id="GS", short_name="S")
 
-    body = client.get("/v1/stats/stations/R16/headways?hours=2&route=GS").json()
-    assert body["total_arrivals"] == 3
+    url = "/v1/stats/stations/R16/headways?route=GS&route_name=S"
+    assert client.get(url).status_code == 400
+
+
+def test_route_rejects_a_rider_facing_name(db_session):
+    """?route=S is the wrong axis, and silence would read as "no service"."""
+    _seed(db_session, gaps_minutes=[5, 5], route_id="GS", short_name="S")
+
+    resp = client.get("/v1/stats/stations/R16/headways?hours=2&route=S")
+    assert resp.status_code == 400
+    assert "route_name=S" in resp.json()["detail"]
 
 
 def test_route_filter_on_an_unserved_route_is_empty(db_session):
+    """An id this station simply has no arrivals for is data, not an error."""
     _seed(db_session, gaps_minutes=[5, 5], route_id="GS", short_name="S")
 
     body = client.get("/v1/stats/stations/R16/headways?hours=2&route=Q").json()
