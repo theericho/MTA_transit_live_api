@@ -61,7 +61,7 @@ uvicorn app.main:app --reload          # terminal 2: API
 ```
 
 For dashboard development, run Vite's dev server in a third terminal
-(Node 20+). It serves the UI on <http://localhost:5173> with hot reload and
+(Node 22.12+). It serves the UI on <http://localhost:5173> with hot reload and
 proxies `/v1` and `/health` to the API above, so there is no CORS to
 configure:
 
