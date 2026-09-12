@@ -3,7 +3,7 @@
 Headway (the gap between consecutive trains) is the natural reliability
 metric for the subway: most lines run frequency-based service, so riders
 care about even spacing, not a printed schedule. Regularity is reported as
-the share of headways within 1.25x the median (README, design decision 10).
+the share of headways within 1.25x the median (design_decisions.md, decision 11).
 
 The gap arithmetic happens in Python after an indexed, filtered, joined
 query. It could be pushed into SQL with window functions (LAG); it is kept

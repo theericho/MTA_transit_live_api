@@ -14,7 +14,7 @@ Two separate mechanisms, because the data only covers half the problem:
    a trailing X on a known route means "that route, express".
 
 Raw ids stay the join key everywhere in the database; translation happens on
-read (README, design decision 14).
+read (design_decisions.md, decision 14).
 """
 import logging
 from dataclasses import dataclass

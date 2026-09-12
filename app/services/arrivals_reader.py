@@ -4,7 +4,7 @@ Runs in the API process. Reads the per-station records the worker wrote to
 Redis (app/cache.py) and turns them into the StationArrivals response model.
 The unknown-vs-quiet contract is unchanged from v2: None means the station
 is unknown everywhere (404 upstream); a known station with nothing upcoming
-returns an empty list (README, design decision 6).
+returns an empty list (design_decisions.md, decision 6).
 """
 import time
 from datetime import datetime, timezone

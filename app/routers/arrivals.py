@@ -1,7 +1,7 @@
 """Arrival endpoints. Reads go through the Redis snapshot, never to the MTA
-directly - the worker process owns ingestion (README, design decision 2).
+directly - the worker process owns ingestion (design_decisions.md, decision 2).
 
-Response semantics (README, design decisions 6 and 7):
+Response semantics (design_decisions.md, decisions 6 and 7):
 - 503 until the worker has written its first snapshot
 - 404 for a station id we've never seen
 - 200 with an empty list for a known-but-quiet station

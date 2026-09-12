@@ -2,7 +2,7 @@
 
 Results are grouped by station complex, so "Herald" returns one entry covering
 both R17 (N/Q/R/W) and D17 (B/D/F/M) rather than two identical-looking rows
-(README, design decision 12). Stations without a complex - the state before
+(design_decisions.md, decision 12). Stations without a complex - the state before
 scripts/load_gtfs_static.py has run - come back as their own entries, which is
 why each result carries a `kind` telling the client which endpoint to call.
 """

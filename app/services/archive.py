@@ -2,8 +2,8 @@
 
 The realtime feed only says what is about to happen. To build history we
 track the latest prediction per (trip, station) across polls and, once its
-arrival time passes, record it as an observed arrival (README, design
-decision 4).
+arrival time passes, record it as an observed arrival
+(design_decisions.md, decision 4).
 
 A prediction is only archived if the feed data behind it was still fresh
 close to the arrival moment (FRESHNESS_WINDOW). A train that vanished from

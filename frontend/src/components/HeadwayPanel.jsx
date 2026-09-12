@@ -2,7 +2,7 @@ import RouteBullet from './RouteBullet.jsx'
 
 // Surfaces the archived history: how evenly trains actually ran. Regularity
 // is the share of gaps within 1.25x the median, the standard measure for
-// frequency-based service (README, design decision 11).
+// frequency-based service (design_decisions.md, decision 11).
 export default function HeadwayPanel({ headways, error }) {
   if (error?.status === 404) {
     return <p className="muted">No arrivals archived here yet.</p>

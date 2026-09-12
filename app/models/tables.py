@@ -1,4 +1,4 @@
-"""ORM tables for the arrival history (README, design decision 4).
+"""ORM tables for the arrival history (design_decisions.md, decision 4).
 
 Normalized: reference data (stations, routes, trips) lives once, enforced by
 unique keys; arrival events are compact rows of foreign keys plus timestamps.
@@ -20,7 +20,7 @@ class StationComplex(Base):
     GTFS models platforms - 34 St-Herald Sq is two stations (R17 for N/Q/R/W,
     D17 for B/D/F/M) and Times Sq is five. Riders think in complexes, so the
     MTA's Stations.csv complex mapping is loaded here and the API answers per
-    complex (README, design decision 12).
+    complex (design_decisions.md, decision 12).
     """
     __tablename__ = "complexes"
 

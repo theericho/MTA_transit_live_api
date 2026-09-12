@@ -1,6 +1,6 @@
 """Database setup: SQLAlchemy engine, sessions, and schema creation.
 
-DATABASE_URL selects the backend (README, design decision 4): SQLite by
+DATABASE_URL selects the backend (design_decisions.md, decision 4): SQLite by
 default for zero-setup local development, PostgreSQL in production, e.g.
 postgresql+psycopg://user:pass@host/db. Schema and queries stay portable.
 
