@@ -3,7 +3,7 @@
 This module is the ingestion half of the pipeline and runs inside the worker
 process (app/worker.py). Each poll fetches all subway feeds concurrently,
 merges them with the previous cycle (a failed feed keeps its last payload -
-stale beats absent, README design decision 7), and inverts the per-trip
+stale beats absent, design_decisions.md decision 7), and inverts the per-trip
 feeds into a per-station index. The worker then writes that index to the
 Redis snapshot store (app/cache.py) for the API process to read.
 """

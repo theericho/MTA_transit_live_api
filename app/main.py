@@ -1,11 +1,11 @@
 """App entry point: creates the FastAPI app, wires routers, serves the UI.
 
 This is the read side of the system: ingestion runs in a separate worker
-process (app/worker.py) and communicates through Redis (README, design
-decision 2). This process never talks to the MTA.
+process (app/worker.py) and communicates through Redis
+(design_decisions.md, decision 2). This process never talks to the MTA.
 
 The built dashboard is served from this same app so the browser talks to one
-origin and no CORS configuration is needed (README, design decision 13).
+origin and no CORS configuration is needed (design_decisions.md, decision 13).
 """
 import contextlib
 import time
@@ -38,7 +38,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="MTA Transit Live API",
     description="Live NYC subway arrivals, station-indexed, from the MTA's "
-                "GTFS-realtime feeds. See the project README for the design.",
+                "GTFS-realtime feeds. See design_decisions.md for the design.",
     version="0.4.0",
     lifespan=lifespan,
 )

@@ -2,7 +2,7 @@
 
 Run with: python -m app.worker
 
-This is the write side of the system (README, design decision 2): it owns
+This is the write side of the system (design_decisions.md, decision 2): it owns
 feed polling, the Redis snapshot, and database writes. The API process only
 reads. Killing the worker does not take the API down - clients keep getting
 the last snapshot with an honest, growing data_age_seconds.

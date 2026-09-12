@@ -8,7 +8,7 @@ import RouteBullet from './components/RouteBullet.jsx'
 import StationSearch from './components/StationSearch.jsx'
 
 // The upstream feeds only change every ~30s, so polling twice that often is
-// plenty; anything faster would just burn requests (README, design decision 15).
+// plenty; anything faster would just burn requests (design_decisions.md, decision 15).
 const POLL_MS = 15000
 
 export default function App() {

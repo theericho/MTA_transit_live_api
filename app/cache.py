@@ -5,7 +5,7 @@ station (arrivals:{station_id}, a JSON list of arrival records) plus a
 snapshot:updated_at meta key. The API only reads. Keys carry a TTL of
 SNAPSHOT_TTL so a dead worker's data ages visibly (clients see
 data_age_seconds grow) but does not vanish instantly - stale beats absent
-(README, design decisions 3 and 7).
+(design_decisions.md, decisions 3 and 7).
 
 The client is created lazily from REDIS_URL; tests inject a fakeredis client
 instead, so the suite needs no running Redis.
