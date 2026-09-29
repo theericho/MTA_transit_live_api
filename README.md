@@ -4,6 +4,10 @@ A real-time NYC subway arrivals API built with [FastAPI](https://fastapi.tiangol
 Ingests the MTA's GTFS-realtime feeds, serves live arrival lookups per station,
 and archives observed arrivals for reliability analytics.
 
+**Live at [mtatransit.online](https://mtatransit.online)** - the dashboard,
+with the interactive API docs at
+[mtatransit.online/docs](https://mtatransit.online/docs).
+
 **Status: v4 - dashboard.** A React dashboard ships with the API: search any
 of the 496 stations, watch live arrivals, and see how evenly trains have
 actually been running. Ingestion runs in a dedicated worker process that polls
